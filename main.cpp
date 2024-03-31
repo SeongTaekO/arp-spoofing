@@ -12,6 +12,7 @@
 #include "arphdr.h"
 #include <map>
 #include <time.h>
+#include <vector>
 
 #pragma pack(push, 1)
 struct EthArpPacket final {
@@ -150,40 +151,44 @@ int main(int argc, char* argv[]) {
     const char* interface = argv[1];
     Mac reciever_mac;
     Mac sender_mac;
-    while (true) {
-        for (int i=2; i<argc; i+=2) {
-            reciever_mac = getMACAddress(interface);
-            std::string receiver_mac_print = (std::string)reciever_mac;
-            printf("Receiver MAC = %s\n", receiver_mac_print.c_str());
-        
-            sender_mac = arp_request(Ip(argv[i]), Ip(argv[i+1]), reciever_mac, handle);
-            std::string sender_mac_print = (std::string)sender_mac;
-            printf("Sender MAC = %s\n", sender_mac_print.c_str());
-        
-            arp_reply(Ip(argv[i]), Ip(argv[i+1]), sender_mac, reciever_mac, handle);
-            printf("%d done\n", i/2);
-            printf("====================\n");
-        }
+    std::vector<Mac> sender_mac_array;
+
+    for (int i=2; i<argc; i+=2) {
+        reciever_mac = getMACAddress(interface);
+        std::string receiver_mac_print = (std::string)reciever_mac;
+        printf("Receiver MAC = %s\n", receiver_mac_print.c_str());
+      
+        sender_mac = arp_request(Ip(argv[i]), Ip(argv[i+1]), reciever_mac, handle);
+        std::string sender_mac_print = (std::string)sender_mac;
+        printf("Sender MAC = %s\n", sender_mac_print.c_str());
+        sender_mac_array.push_back(sender_mac);
+
+        arp_reply(Ip(argv[i]), Ip(argv[i+1]), sender_mac, reciever_mac, handle);
+        printf("%d done\n", i/2);
+        printf("====================\n");
     }
     
-    //clock_t start, finish;
-    //double duration = 0;
+    clock_t start, finish;
+    double duration = 0;
     
-    //start = clock();
+    start = clock();
      
-    //while (true) {   
-    //    finish = clock();
-    //    duration = (double)(finish-start) / CLOCKS_PER_SEC;
+    while (true) {
+        finish = clock();
+        duration = (double)(finish-start) / CLOCKS_PER_SEC;
         
-    //    if (duration > 1.0) {
-    //        //printf("%f\n", duration);
-    //        arp_reply(Ip(argv[2]), Ip(argv[3]), sender_mac, reciever_mac, handle);
-    //        arp_reply(Ip(argv[4]), Ip(argv[5]), sender_mac, reciever_mac, handle);
-    //       printf("reply\n");
-    //        start = finish;
-    //    }
-    //}
-    
+        if (duration > 1.0) {
+            printf("%f\n", duration);
+            arp_reply(Ip(argv[2]), Ip(argv[3]), sender_mac_array[0], reciever_mac, handle);
+            arp_reply(Ip(argv[4]), Ip(argv[5]), sender_mac_array[1], reciever_mac, handle);
+            printf("reply\n");
+            start = finish;
+        }
+    }
+
+
+    printf("%s\n",((std::string)sender_mac_array[0]).c_str());
+    printf("%s\n",((std::string)sender_mac_array[1]).c_str());
     pcap_close(handle);
     printf("all done\n");
 }
